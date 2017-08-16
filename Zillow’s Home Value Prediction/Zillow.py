@@ -9,14 +9,7 @@ from sklearn.linear_model import LinearRegression
 import random
 import datetime as dt
 
-# Parameters
-XGB_WEIGHT = 0.6415
-BASELINE_WEIGHT = 0.0056
-OLS_WEIGHT = 0.0828
 
-XGB1_WEIGHT = 0.8083  # Weight of first in combination of two XGB models
-
-BASELINE_PRED = 0.0115   # Baseline based on mean of training data, per Oleg
 
 # READ IN RAW DATA
 
@@ -104,11 +97,6 @@ print( pd.DataFrame(p_test).head() )
 
 
 # XGBoost
-
-
-##### RE-READ PROPERTIES FILE
-
-
 print( "\nRe-reading properties file ...")
 properties = pd.read_csv('C:/Users/wei/Desktop/Zillow/properties_2016.csv')
 
@@ -196,8 +184,6 @@ xgb_pred2 = model.predict(dtest)
 print( "\nSecond XGBoost predictions:" )
 print( pd.DataFrame(xgb_pred2).head() )
 
-
-
 ##### COMBINE XGBOOST RESULTS
 
 xgb_pred = XGB1_WEIGHT*xgb_pred1 + (1-XGB1_WEIGHT)*xgb_pred2
@@ -216,14 +202,13 @@ del xgb_pred1
 del xgb_pred2
 gc.collect()
 
+# Parameters
+XGB_WEIGHT = 0.6415
+BASELINE_WEIGHT = 0.0056
+OLS_WEIGHT = 0.0828
+XGB1_WEIGHT = 0.8083  
+BASELINE_PRED = 0.0115 
 
-
-#  OLS
-
-# This section is derived from the1owl's notebook:
-#    https://www.kaggle.com/the1owl/primer-for-the-zillow-pred-approach
-# which I (Andy Harless) updated and made into a script:
-#    https://www.kaggle.com/aharless/updated-script-version-of-the1owl-s-basic-ols
 np.random.seed(17)
 random.seed(17)
 
@@ -265,30 +250,26 @@ test_dates = ['2016-10-01','2016-11-01','2016-12-01','2017-10-01','2017-11-01','
 test_columns = ['201610','201611','201612','201710','201711','201712']
 
 
-# Combine and Save
 # COMBINE PREDICTIONS
 print( "\nCombining XGBoost, LightGBM, and baseline predicitons ..." )
 lgb_weight = (1 - XGB_WEIGHT - BASELINE_WEIGHT) / (1 - OLS_WEIGHT)
 xgb_weight0 = XGB_WEIGHT / (1 - OLS_WEIGHT)
-baseline_weight0 =  BASELINE_WEIGHT / (1 - OLS_WEIGHT)
-pred0 = xgb_weight0*xgb_pred + baseline_weight0*BASELINE_PRED + lgb_weight*p_test
+pred0 = xgb_weight0*xgb_pred  + lgb_weight*p_test
 
 print( "\nCombined XGB/LGB/baseline predictions:" )
 print( pd.DataFrame(pred0).head() )
 
-print( "\nPredicting with OLS and combining with XGB/LGB/baseline predicitons: ..." )
+
+
 for i in range(len(test_dates)):
     test['transactiondate'] = test_dates[i]
     pred = OLS_WEIGHT*reg.predict(get_features(test)) + (1-OLS_WEIGHT)*pred0
     submission[test_columns[i]] = [float(format(x, '.4f')) for x in pred]
     print('predict...', i)
 
-print( "\nCombined XGB/LGB/baseline/OLS predictions:" )
+
 print( submission.head() )
 
-
 # WRITE THE RESULTS
-from datetime import datetime
-print( "\nWriting results to disk ..." )
 submission.to_csv('8_9.csv'.format(datetime.now().strftime('%Y%m%d_%H%M%S')), index=False)
-print( "\nFinished ...")
+ 
